@@ -1209,7 +1209,7 @@ def generate_vCarr_from_OMNI(runstart, runend, nlon_grid=128, dt=1*u.day,
     for i in range(0, len(omni_int)):
         cr[i], cr_lon_init[i] = datetime2huxtinputs(omni_int['datetime'][i])
 
-    omni_int['Carr_lon'] = cr_lon_init
+    omni_int['Carr_lon'] = cr_lon_init.value
     omni_int['Carr_lon_unwrap'] = np.unwrap(omni_int['Carr_lon'].to_numpy())
 
     omni_int['mjd'] = [t.mjd for t in omni_int['Time'].array]
@@ -1227,12 +1227,15 @@ def generate_vCarr_from_OMNI(runstart, runend, nlon_grid=128, dt=1*u.day,
     omni_int['Carr_lon_ref'] = omni_int['Carr_lon_unwrap']
     for t in range(0, len(omni_int)):
         #time lag to reference radius
-        delta_r = ref_r.to(u.km).value - omni_int['R'][t] 
+        delta_r = (ref_r.to(u.km) - omni_int['R'][t]).value
         delta_t = delta_r/omni_int['V'][t]/24/60/60
         omni_int['mjd_ref'][t] = omni_int['mjd_ref'][t]  + delta_t
         #change in Carr long of the measurement
         omni_int['Carr_lon_ref'][t] =  omni_int['Carr_lon_ref'][t] - \
             delta_t *daysec * 2 * np.pi /synodic_period
+    
+    #  Fix R to non-astropy, unitless values for compatibility
+    omni_int['R'] = omni_int['R'].to_numpy('float64')
     
     #sort the omni data by Carr_lon_ref for interpolation
     omni_temp = omni_int.copy()
@@ -1243,7 +1246,6 @@ def generate_vCarr_from_OMNI(runstart, runend, nlon_grid=128, dt=1*u.day,
                                   omni_temp['V'])
     omni_int['Br_ref'] = np.interp(omni_int['Carr_lon_unwrap'], omni_temp['Carr_lon_ref'],
                                   -omni_temp['BX_GSE'])
-    
 
     # compute the longitudinal and time grids
     dphi_grid = 360/nlon_grid
