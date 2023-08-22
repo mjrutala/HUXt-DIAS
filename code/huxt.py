@@ -45,6 +45,7 @@ class Observer:
             times: A list/array of Astropy Times to interpolate the coordinate of the selected body.
         """
         bodies = ["MERCURY", "VENUS", "EARTH", "MARS", "JUPITER", "SATURN", "STA", "STB"]
+        
         if body.upper() in bodies:
             self.body = body.upper()
         else:
@@ -126,6 +127,77 @@ class Observer:
             self.lat_c = self.lat_c * u.rad
 
         ephem.close()
+        return
+    
+    def from_SPICE(self):
+        import spiceypy as spice
+        # Get path to ephemeris file and open
+        dirs = _setup_dirs_()
+        ephemeris_dir = '/'.join(dirs['ephemeris'].split('/')[0:-1]) + '/'
+        
+        # =============================================================================
+        #  Some hardcoded SPICE kernels and paths
+        #  This should be replaced with a dynamic system if this is to be used widely
+        # =============================================================================
+        spice_file = ephemeris_dir + 'metakernel_' + self.body.lower() + '.txt'
+        solar_frames_file = ephemeris_dir + 'SolarFrames.tf'
+        
+        spice.furnsh(spice_file)
+        spice.furnsh(solar_frames_file)
+        
+        ets = spice.datetime2et(self.times.datetime)
+        if len(ets) == 0:
+            self.r = np.ones(len(self.times)) * np.nan  #  Changed from self.time to self.times
+            self.lon = np.ones(len(self.times)) * np.nan 
+            self.lat = np.ones(len(self.times)) * np.nan 
+            
+            self.r_hae = np.ones(len(self.times)) * np.nan 
+            self.lon_hae = np.ones(len(self.times)) * np.nan 
+            self.lat_hae = np.ones(len(self.times)) * np.nan 
+            
+            self.r_c = np.ones(len(self.times)) * np.nan 
+            self.lon_c = np.ones(len(self.times)) * np.nan 
+            self.lat_c = np.ones(len(self.times)) * np.nan 
+
+        else:
+            #  'SUN_EARTH_CEQU' == 'HEEQ'
+            xyz, lt = spice.spkpos(self.body, ets, 'SUN_EARTH_CEQU', 'NONE', 'SUN')
+            r, lon, lat = zip(*[spice.reclat(position) for position in xyz]) 
+            
+            self.r = (np.array(r) * u.km).to(u.solRad)
+
+            self.lon = np.unwrap(np.array(lon))
+            self.lon = _zerototwopi_(self.lon) # !!!!
+            self.lon = self.lon * u.rad
+
+            self.lat = np.array(lat)
+            self.lat = self.lat * u.rad
+            
+            #  'SUN_ARIES_ECL' == 'HAE'
+            xyz, lt = spice.spkpos(self.body, ets, 'SUN_ARIES_ECL', 'NONE', 'SUN')
+            r, lon, lat = zip(*[spice.reclat(position) for position in xyz])
+            
+            self.r_hae = (np.array(r) * u.km).to(u.solRad)
+            
+            self.lon_hae = np.unwrap(np.array(lon))
+            self.lon_hae = _zerototwopi_(self.lon_hae) # !!!!
+            self.lon_hae = self.lon_hae * u.rad
+            
+            self.lat_hae = np.array(lat)
+            self.lat_hae = self.lat_hae * u.rad
+            
+            xyz, lt = spice.spkpos(self.body, ets, 'SUN_ARIES_ECL', 'NONE', 'SUN')
+            r, lon, lat = zip(*[spice.reclat(position) for position in xyz])
+            
+            self.r_c = (np.array(r) * u.km).to(u.solRad)
+            
+            self.lon_c = np.unwrap(np.array(lon))
+            self.lon_c = _zerototwopi_(self.lon_c)
+            self.lon_c = self.lon_c * u.rad
+            
+            self.lat_c = np.array(lat)
+            self.lat_c = self.lat_c * u.rad
+
         return
 
 
