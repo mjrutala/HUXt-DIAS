@@ -39,24 +39,27 @@ class Observer:
         time: Array of Astropy Times
     """
 
-    def __init__(self, body, times):
+    def __init__(self, body, times, force_spice=False):
         """
             body: String indicating which body to look up the positions of .
             times: A list/array of Astropy Times to interpolate the coordinate of the selected body.
         """
-        bodies = ["MERCURY", "VENUS", "EARTH", "MARS", "JUPITER", "SATURN", "STA", "STB"]
-        
-        if body.upper() in bodies:
-            self.body = body.upper()
-        else:
-            print("Warning, body {} not recognised.".format(body))
-            print("Only {} are valid.".format(bodies))
-            print("Defaulting to Earth")
-            self.body = "EARTH"
-        
         self.times = times  #  changed from self.time to self.times
         
-        self.from_HDF5()
+        hdf5_bodies = ["MERCURY", "VENUS", "EARTH", "MARS", "JUPITER", "SATURN", "STA", "STB"]
+        spice_bodies = ["PIONEER 10", "PIONEER 11", "VOYAGER 1", "VOYAGER 2", "GALILEO", "ULYSSES", "JUNO"]
+        if body.upper() in hdf5_bodies:
+            self.body = body.upper()
+            self.from_HDF5()
+        elif (body.upper() in spice_bodies) or (force_spice == True):
+            self.body = body.upper()
+            self.from_SPICE()
+        else:
+            print("Warning, body {} not recognised.".format(body))
+            print("Only {} are valid.".format(hdf5_bodies + spice_bodies))
+            print("Defaulting to Earth")
+            self.body = "EARTH"
+            self.from_HDF5()
         
     def from_HDF5(self):
         # Get path to ephemeris file and open
@@ -139,7 +142,14 @@ class Observer:
         #  Some hardcoded SPICE kernels and paths
         #  This should be replaced with a dynamic system if this is to be used widely
         # =============================================================================
-        spice_file = ephemeris_dir + 'metakernel_' + self.body.lower() + '.txt'
+        planetary_bodies = ["MERCURY", "VENUS", "EARTH", "MARS", "JUPITER", "SATURN"]
+        
+        #  In case SPICE is being used for a non spacecraft, just load planetary ephemerides
+        if self.body in planetary_bodies:
+            spice_file = ephemeris_dir + 'metakernel_Juno' + '.txt'
+        else:
+            spice_file = ephemeris_dir + 'metakernel_' + self.body.replace(' ','').lower() + '.txt'
+        
         solar_frames_file = ephemeris_dir + 'SolarFrames.tf'
         
         spice.furnsh(spice_file)
