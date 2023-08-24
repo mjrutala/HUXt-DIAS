@@ -146,7 +146,7 @@ class Observer:
         
         #  In case SPICE is being used for a non spacecraft, just load planetary ephemerides
         if self.body in planetary_bodies:
-            spice_file = ephemeris_dir + 'metakernel_Juno' + '.txt'
+            spice_file = ephemeris_dir + 'metakernel_Juno' + '.txt'  #  Juno metakernel happens to have planetary info
         else:
             spice_file = ephemeris_dir + 'metakernel_' + self.body.replace(' ','').lower() + '.txt'
         
@@ -155,7 +155,7 @@ class Observer:
         spice.furnsh(spice_file)
         spice.furnsh(solar_frames_file)
         
-        ets = spice.datetime2et(self.times.datetime)
+        ets = spice.datetime2et(self.times.to_datetime(leap_second_strict='warn'))
         if len(ets) == 0:
             self.r = np.ones(len(self.times)) * np.nan  #  Changed from self.time to self.times
             self.lon = np.ones(len(self.times)) * np.nan 
