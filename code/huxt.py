@@ -171,7 +171,10 @@ class Observer:
 
         else:
             #  'SUN_EARTH_CEQU' == 'HEEQ'
-            xyz, lt = spice.spkpos(self.body, ets, 'SUN_EARTH_CEQU', 'NONE', 'SUN')
+            try:
+                xyz, lt = spice.spkpos(self.body, ets, 'SUN_EARTH_CEQU', 'NONE', 'SUN')
+            except spice.SpiceIDCODENOTFOUND:
+                xyz, lt = spice.spkpos(self.body.replace(' ', '-'), ets, 'SUN_EARTH_CEQU', 'NONE', 'SUN')
             r, lon, lat = zip(*[spice.reclat(position) for position in xyz]) 
             
             self.r = (np.array(r) * u.km).to(u.solRad)
@@ -184,7 +187,10 @@ class Observer:
             self.lat = self.lat * u.rad
             
             #  'SUN_ARIES_ECL' == 'HAE'
-            xyz, lt = spice.spkpos(self.body, ets, 'SUN_ARIES_ECL', 'NONE', 'SUN')
+            try: 
+                xyz, lt = spice.spkpos(self.body, ets, 'SUN_ARIES_ECL', 'NONE', 'SUN')
+            except spice.SpiceIDCODENOTFOUND:
+                xyz, lt = spice.spkpos(self.body.replace(' ', '-'), ets, 'SUN_ARIES_ECL', 'NONE', 'SUN')
             r, lon, lat = zip(*[spice.reclat(position) for position in xyz])
             
             self.r_hae = (np.array(r) * u.km).to(u.solRad)
@@ -197,7 +203,10 @@ class Observer:
             self.lat_hae = self.lat_hae * u.rad
             
             #  'SUN_INERTIAL' == 'CARR' #!!!!! Maybe?
-            xyz, lt = spice.spkpos(self.body, ets, 'SUN_INERTIAL', 'NONE', 'SUN')
+            try:
+                xyz, lt = spice.spkpos(self.body, ets, 'SUN_INERTIAL', 'NONE', 'SUN')
+            except spice.SpiceIDCODENOTFOUND:
+                xyz, lt = spice.spkpos(self.body.replace(' ', '-'), ets, 'SUN_INERTIAL', 'NONE', 'SUN')
             r, lon, lat = zip(*[spice.reclat(position) for position in xyz])
             
             self.r_c = (np.array(r) * u.km).to(u.solRad)
