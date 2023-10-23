@@ -1373,18 +1373,30 @@ def generate_vCarr_from_VSWUM(runstart, runend, nlon_grid=128, dt=1*u.day,
     mask_data_int = mask_data
     del mask_data
     
-    return mask_data_int
-    
     # compute carrington longitudes
-    cr = np.ones(len(omni_int))
-    cr_lon_init = np.ones(len(omni_int))*u.rad
-    for i in range(0, len(omni_int)):
-        cr[i], cr_lon_init[i] = datetime2huxtinputs(omni_int['datetime'][i])
+    # cr = np.ones(len(mask_data_int))
+    # cr_lon_init = np.ones(len(mask_data_int))*u.rad
+    # for i in range(0, len(omni_int)):
+    #     cr[i], cr_lon_init[i] = datetime2huxtinputs(omni_int['datetime'][i])
 
-    omni_int['Carr_lon'] = cr_lon_init.value
-    omni_int['Carr_lon_unwrap'] = np.unwrap(omni_int['Carr_lon'].to_numpy())
+    import spiceypy as spice
+    spice.furnsh('/Users/mrutala/projects/HUXt-DIAS-Mars-Prop/data/SPICE/generic/metakernel_HUXt_planetary.txt')
+    
+    #   Only keep the surface coordinates from spice.subpnt()
+    #   NB This does *not* give CR #, but we shouldn't need it here
+    ets = spice.datetime2et(mask_data_int['datetime'])
+    xyz_coords = [spice.subpnt('NEAR POINT/ELLIPSOID', 'SUN', et, 'IAU_SUN', 'LT+S', 'MARS BARYCENTER')[0] for et in ets]
+    rlonlat_coords = np.array([spice.reclat(xyz) for xyz in xyz_coords])
+    cr_lon_init = rlonlat_coords[:,1]*u.rad
+    
+    spice.kclear()
+    
+    mask_data_int['Carr_lon'] = cr_lon_init.value
+    mask_data_int['Carr_lon_unwrap'] = np.unwrap(cr_lon_init.value)
 
-    omni_int['mjd'] = [t.mjd for t in omni_int['Time'].array]
+    mask_data_int['mjd'] = [t.mjd for t in mask_data_int['Time'].array]
+    
+    return mask_data_int
     
     # get the Earth radial distance info.
     dirs = H._setup_dirs_()
