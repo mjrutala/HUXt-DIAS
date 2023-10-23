@@ -1325,26 +1325,27 @@ def generate_vCarr_from_VSWUM(runstart, runend, nlon_grid=128, dt=1*u.day,
     
     #check the coro_type is one of he accepted values
     assert corot_type == 'both' or corot_type == 'back' or corot_type == 'forward'
-
+    
+    #   MJR 20231023: I think this is (partially) to allow easier mapping to Carr. longitude later on, so I'm leaving it
     # download an additional 28 days either side
-    starttime = runstart - datetime.timedelta(days=28)
-    endtime = runend + datetime.timedelta(days=28)
+    starttime = runstart #- datetime.timedelta(days=28)
+    endtime = runend #+ datetime.timedelta(days=28)
     
     #   Read in the VSWUM 1 hr data from file
-    filepath = '/Users/mrutala/projects/Mars-HUXt-DIAS/Hour2014-2020.csv'
+    filepath = '/Users/mrutala/projects/HUXt-DIAS-Mars-Prop/data/Hour2014-2020.csv'
     cols_to_use = ['date_[utc]', 'mu_b_x_SW', 'sigma_b_x_SW', 'mu_v_mag_SW', 'sigma_v_mag_SW']
     
     vswum = pd.read_csv(filepath)
-    data = vswum[cols_to_use]
+    data = vswum[cols_to_use].copy()
     
-    #   !!!! Shouldn't be needed...
+    #   MJR 20231023: Shouldn't be needed if there's no bad data in VSWUM,,,
     # # Set invalid data points to NaN
     #id_bad = data['V'] == 9999.0
     #data.loc[id_bad, 'V'] = np.NaN
     
     # create a datetime column
-    data['datetime'] = data['date_[utc]'].to_pydatetime()
-
+    data['datetime'] = pd.to_datetime(data['date_[utc]'], format='%Y-%m-%d %H:%M:%S')
+    
     #   !!!! Do we need to adjust this for Mars synodic period? i.e., longer day?
     # compute the syndoic rotation period
     daysec = 24 * 60 * 60 * u.s
@@ -1354,16 +1355,25 @@ def generate_vCarr_from_VSWUM(runstart, runend, nlon_grid=128, dt=1*u.day,
     # find the period of interest
     mask = ((data['datetime'] > starttime) &
             (data['datetime'] < endtime))
-    omni = data[mask]
-    omni = omni.reset_index()
-    omni['Time'] = Time(omni['datetime'])
+    mask_data = data[mask]
+    mask_data = mask_data.reset_index()
+    mask_data['Time'] = Time(mask_data['datetime'])  #  Add an astropy Time
     
-    smjd = omni['Time'][0].mjd
-    fmjd = omni['Time'][len(omni) - 1].mjd
+    #   Start and final MJD
+    smjd = mask_data['Time'][0].mjd
+    fmjd = mask_data['Time'][len(mask_data) - 1].mjd
 
+    #   MJR 20231023: Input data is complete, and shouldn't need interpolation
+    #   But I'm leaving it in case we want to interpolate through error-prone
+    #   windows in the future
     # interpolate through OMNI V data gaps
-    omni_int = omni.interpolate(method='linear', axis=0).ffill().bfill()
-    del omni
+    # omni_int = omni.interpolate(method='linear', axis=0).ffill().bfill()
+    # del omni
+    
+    mask_data_int = mask_data
+    del mask_data
+    
+    return mask_data_int
     
     # compute carrington longitudes
     cr = np.ones(len(omni_int))
