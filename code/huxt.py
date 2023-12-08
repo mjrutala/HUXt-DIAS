@@ -136,7 +136,7 @@ class Observer:
         import spiceypy as spice
         # Get path to ephemeris file and open
         dirs = _setup_dirs_()
-        ephemeris_dir = '/'.join(dirs['ephemeris'].split('/')[0:-1]) + '/'
+        ephemeris_dir = dirs['spice']
         
         # =============================================================================
         #  Some hardcoded SPICE kernels and paths
@@ -146,11 +146,11 @@ class Observer:
         
         #  In case SPICE is being used for a non spacecraft, just load planetary ephemerides
         if self.body in planetary_bodies:
-            spice_file = ephemeris_dir + 'metakernel_Juno' + '.txt'  #  Juno metakernel happens to have planetary info
+            spice_file = ephemeris_dir + '/metakernel_Juno' + '.txt'  #  Juno metakernel happens to have planetary info
         else:
-            spice_file = ephemeris_dir + 'metakernel_' + self.body.replace(' ','').lower() + '.txt'
+            spice_file = ephemeris_dir + '/metakernel_' + self.body.replace(' ','').lower() + '.txt'
         
-        solar_frames_file = ephemeris_dir + 'SolarFrames.tf'
+        solar_frames_file = ephemeris_dir + '/SolarFrames.tf'
         
         spice.furnsh(spice_file)
         spice.furnsh(solar_frames_file)
